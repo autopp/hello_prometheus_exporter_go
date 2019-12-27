@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
 
@@ -24,10 +23,16 @@ var (
 		Help:      "example counter help",
 	})
 	exampleGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: namespace,
-		Name:      "example_gauge",
-		Help:      "example gauge help",
+		Namespace:   namespace,
+		Name:        "example_gauge",
+		Help:        "example gauge help",
+		ConstLabels: prometheus.Labels{"answer": "42"},
 	})
+	exampleLabelCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Name:      "example_label_count",
+		Help:      "example counter help",
+	}, []string{"message", "status"})
 )
 
 func (c *myCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -48,12 +53,16 @@ func (c *myCollector) Collect(ch chan<- prometheus.Metric) {
 		prometheus.GaugeValue,
 		float64(exampleValue),
 	)
+
+	ch <- prometheus.MustNewConstMetric(
+		exampleLabelCount.WithLabelValues("goodbye", "200").Desc(),
+		prometheus.CounterValue,
+		float64(c.counter),
+		"hello", "200")
 	c.counter++
 }
 
 func main() {
-	flag.Parse()
-
 	var c myCollector
 	prometheus.MustRegister(&c)
 
