@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -65,6 +67,18 @@ func (c *myCollector) Collect(ch chan<- prometheus.Metric) {
 func main() {
 	var c myCollector
 	prometheus.MustRegister(&c)
+	counter := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: namespace,
+		Name:      "local_counter",
+		Help:      "local count",
+	})
+	prometheus.MustRegister(counter)
+	go func() {
+		for {
+			counter.Add(2)
+			time.Sleep(time.Second * 2)
+		}
+	}()
 
 	http.Handle("/metrics", promhttp.Handler())
 	log.Fatal(http.ListenAndServe("127.0.0.1:5000", nil))
